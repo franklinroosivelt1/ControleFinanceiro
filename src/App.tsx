@@ -191,7 +191,6 @@ export default function App() {
       <Header
         onOpenCategories={() => setIsCategoriesModalOpen(true)}
         onOpenBackup={() => setIsBackupModalOpen(true)}
-        onResetData={handleResetToDemo}
       />
 
       {/* Main Container */}

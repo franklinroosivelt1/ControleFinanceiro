@@ -1,16 +1,14 @@
 import React from 'react';
-import { Wallet, Settings2, Download, RotateCcw } from 'lucide-react';
+import { Wallet, Settings2, Download } from 'lucide-react';
 
 interface HeaderProps {
   onOpenCategories: () => void;
   onOpenBackup: () => void;
-  onResetData: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenCategories,
   onOpenBackup,
-  onResetData,
 }) => {
   return (
     <header className="border-b border-stone-200 bg-white sticky top-0 z-30 shadow-xs">
@@ -55,16 +53,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Download className="w-4 h-4 text-stone-600" />
             <span className="hidden md:inline">Exportar / Backup</span>
-          </button>
-
-          <button
-            id="btn-reset-demo"
-            type="button"
-            onClick={onResetData}
-            className="inline-flex items-center gap-1.5 p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
-            title="Restaurar dados de exemplo"
-          >
-            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
