@@ -7,11 +7,13 @@ import {
   Receipt,
   Edit3,
   CheckCircle2,
+  PlusCircle,
 } from 'lucide-react';
-import { BudgetConfig, Category, Transaction } from '../types';
+import { BudgetConfig, Category, Transaction, IncomeRecord } from '../types';
 import { formatBRL } from '../utils/formatters';
 import { FinanceSummary } from '../utils/financeCalculations';
 import { ActiveTab } from './TabNavigation';
+import { AddBalanceModal } from './AddBalanceModal';
 
 interface TabHomeProps {
   summary: FinanceSummary;
@@ -31,6 +33,7 @@ export const TabHome: React.FC<TabHomeProps> = ({
   onUpdateBudgetConfig,
 }) => {
   const [isEditingValues, setIsEditingValues] = useState(false);
+  const [isAddBalanceModalOpen, setIsAddBalanceModalOpen] = useState(false);
   const [valorPossuidoInput, setValorPossuidoInput] = useState(
     summary.valorTotalPossuidoInicial.toString()
   );
@@ -53,6 +56,49 @@ export const TabHome: React.FC<TabHomeProps> = ({
     });
 
     setIsEditingValues(false);
+  };
+
+  const handleAddIncome = (incomeData: Omit<IncomeRecord, 'id' | 'createdAt'>) => {
+    const newRecord: IncomeRecord = {
+      ...incomeData,
+      id: `inc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: Date.now(),
+    };
+
+    const newPossuido = (budgetConfig.valorTotalPossuido || 0) + incomeData.amount;
+    const newObra = incomeData.addToObraBudget
+      ? (budgetConfig.saldoObraPretendido || 0) + incomeData.amount
+      : (budgetConfig.saldoObraPretendido || 0);
+
+    onUpdateBudgetConfig({
+      ...budgetConfig,
+      valorTotalPossuido: newPossuido,
+      saldoObraPretendido: newObra,
+      totalReceived: newPossuido,
+      maxSpendingLimit: newObra,
+      incomes: [newRecord, ...(budgetConfig.incomes || [])],
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleDeleteIncome = (incomeId: string) => {
+    const target = (budgetConfig.incomes || []).find((i) => i.id === incomeId);
+    if (!target) return;
+
+    const newPossuido = Math.max(0, (budgetConfig.valorTotalPossuido || 0) - target.amount);
+    const newObra = target.addToObraBudget
+      ? Math.max(0, (budgetConfig.saldoObraPretendido || 0) - target.amount)
+      : budgetConfig.saldoObraPretendido;
+
+    onUpdateBudgetConfig({
+      ...budgetConfig,
+      valorTotalPossuido: newPossuido,
+      saldoObraPretendido: newObra,
+      totalReceived: newPossuido,
+      maxSpendingLimit: newObra,
+      incomes: (budgetConfig.incomes || []).filter((i) => i.id !== incomeId),
+      lastUpdated: new Date().toISOString(),
+    });
   };
 
   return (
@@ -173,31 +219,47 @@ export const TabHome: React.FC<TabHomeProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
         {/* Balão 1: Valor Total Disponível em Conta */}
         <div className="bg-white rounded-3xl p-5 border border-emerald-200/90 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition-colors">
-          <div className="flex items-start justify-between gap-2">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-              <Wallet className="w-5 h-5" />
+          <div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                Disponível em Conta
+              </span>
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-              Disponível em Conta
-            </span>
+
+            <div className="mt-3">
+              <p className="text-xs font-bold text-stone-600">
+                Valor Total Disponível em Conta
+              </p>
+              <h4
+                className={`text-2xl sm:text-3xl font-black tracking-tight mt-1 ${
+                  summary.valorTotalDisponivel < 0 ? 'text-rose-600' : 'text-stone-900'
+                }`}
+              >
+                {formatBRL(summary.valorTotalDisponivel)}
+              </h4>
+            </div>
           </div>
 
-          <div className="mt-3">
-            <p className="text-xs font-bold text-stone-600">
-              Valor Total Disponível em Conta
-            </p>
-            <h4
-              className={`text-2xl sm:text-3xl font-black tracking-tight mt-1 ${
-                summary.valorTotalDisponivel < 0 ? 'text-rose-600' : 'text-stone-900'
-              }`}
+          <div className="mt-4 pt-3 border-t border-emerald-100/90 space-y-2.5">
+            <div className="flex items-center justify-between text-[11px] text-stone-500">
+              <span>Capital total registrado:</span>
+              <span className="font-semibold text-stone-700">
+                {formatBRL(summary.valorTotalPossuidoInicial)}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAddBalanceModalOpen(true)}
+              className="w-full py-2.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs tracking-wider uppercase shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              {formatBRL(summary.valorTotalDisponivel)}
-            </h4>
+              <PlusCircle className="w-4 h-4" />
+              <span>Adicionar Saldo</span>
+            </button>
           </div>
-
-          <p className="text-[11px] text-stone-500 mt-3 pt-2.5 border-t border-stone-100">
-            Capital inicial: {formatBRL(summary.valorTotalPossuidoInicial)}
-          </p>
         </div>
 
         {/* Balão 2: Saldo Disponível para a Obra */}
@@ -306,6 +368,17 @@ export const TabHome: React.FC<TabHomeProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal para Adicionar Saldo / Recebimento em Conta */}
+      <AddBalanceModal
+        isOpen={isAddBalanceModalOpen}
+        onClose={() => setIsAddBalanceModalOpen(false)}
+        budgetConfig={budgetConfig}
+        currentAvailableAccount={summary.valorTotalDisponivel}
+        currentAvailableObra={summary.saldoDisponivelObra}
+        onAddIncome={handleAddIncome}
+        onDeleteIncome={handleDeleteIncome}
+      />
     </div>
   );
 };

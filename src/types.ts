@@ -31,9 +31,19 @@ export interface Transaction {
   createdAt: number;
 }
 
+export interface IncomeRecord {
+  id: string;
+  amount: number;
+  description: string;
+  date: string; // ISO YYYY-MM-DD
+  createdAt: number;
+  addToObraBudget?: boolean;
+}
+
 export interface BudgetConfig {
   valorTotalPossuido: number;      // Valor total que possuo (capital total disponível)
   saldoObraPretendido: number;     // Valor que pretendo gastar na obra (orçamento da obra)
+  incomes?: IncomeRecord[];        // Histórico de valores recebidos/aportados
   // Campos legados para retrocompatibilidade
   totalReceived?: number;
   maxSpendingLimit?: number;
